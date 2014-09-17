@@ -5,12 +5,16 @@ from flowzillow.client import SearchClient, ZillowClient
 
 
 def get_zpid_info(zillow_client, zpids):
-    for zpid in zpids:
+    data_set = []
+    for zpid in zpids[1:5]:
         response = zillow_client.get_z_estimate(zpid)
         street, zipcode = get_address_and_zip(response)
         deep_search = zillow_client.get_deep_search_results(street, zipcode)
-        import pdb
-        pdb.set_trace()
+        data = parse_deep_search(deep_search)
+        if data:
+            data_set.append(parse_deep_search(deep_search))
+    import pdb
+    pdb.set_trace()
 
 
 def get_address_and_zip(raw_response):
@@ -20,6 +24,28 @@ def get_address_and_zip(raw_response):
     street_node = address_node.find("street")
     zipcode_node = address_node.find("zipcode")
     return street_node.text, zipcode_node.text
+
+
+def parse_deep_search(search_response):
+    tree = ElementTree.fromstring(search_response)
+    response_node = tree.find("response")
+    result_node = response_node[0][0]
+    try:
+        return {
+            "use_code": result_node.find("useCode").text,
+            "latitude": result_node.find("address").find("latitude").text,
+            "longitude": result_node.find("address").find("longitude").text,
+            "year_built": result_node.find("yearBuilt").text,
+            "lot_sq_ft": result_node.find("lotSizeSqFt").text,
+            "finished_sq_ft": result_node.find("finishedSqFt").text,
+            "bathrooms": result_node.find("bathrooms").text,
+            "bedrooms": result_node.find("bedrooms").text,
+            "total_rooms": result_node.find("totalRooms").text,
+            "tax_assessment": result_node.find("taxAssessment").text,
+            "local_real_estate": result_node.find("localRealEstate")[0][0].text
+        }
+    except (AttributeError, IndexError):
+        return None
 
 
 def search_properties():

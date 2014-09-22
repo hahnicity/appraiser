@@ -11,6 +11,7 @@ setup(
     packages=find_packages(),
     package_data={"*": ["*.html"]},
     install_requires=[
-        "flowzillow"
+        "flowzillow",
+        "scrapezillow",
     ],
 )

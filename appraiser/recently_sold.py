@@ -1,5 +1,8 @@
 import csv
+from datetime import datetime
 from multiprocessing import Pool
+import os
+import shutil
 
 from flowzillow.client import SearchClient
 from scrapezillow.scraper import scrape_url
@@ -13,7 +16,7 @@ def get_zpid_info(zpids):
     want to explicitly fail if we receive an error.
     """
     pool = Pool(200)
-    jobs = [pool.apply_async(get_data_set, args=(zpid,)) for zpid in zpids]
+    jobs = [pool.apply_async(get_data_set, args=(zpid,)) for zpid in zpids[1:40]]
     pool.close()
     data = []
     for job in jobs:
@@ -40,11 +43,11 @@ def parse_results(results):
                 "Apartment": 3
             }[results["home_type"]],
             "year_built": int(results["year"]),
-            "lot_sq_ft": int(results["lot"].replace("sqft", "").strip().replace(",", "")),
-            "finished_sq_ft": int(results["sqft"].replace(",", "")),
-            "bathrooms": int(results["bathrooms"]),
-            "bedrooms": int(results["bedrooms"]),
-            "total_rooms": int(results["room_count"]),
+            "lot_sq_ft": float(results["lot"].replace("sqft", "").strip().replace(",", "")),
+            "finished_sq_ft": float(results["sqft"].replace(",", "")),
+            "bathrooms": float(results["bathrooms"]),
+            "bedrooms": float(results["bedrooms"]),
+            "total_rooms": float(results["room_count"]),
         }
     except KeyError:
         return None
@@ -63,10 +66,33 @@ def search_properties():
     )["map"]["properties"]
 
 
+def write_data_to_file(data):
+    appraiser_dir = os.path.dirname(__file__)
+    home_data_file = os.path.join(appraiser_dir, "home-data.csv")
+    if os.path.exists(home_data_file):
+        archive_dir = os.path.join(appraiser_dir, "archive_dir")
+        try:
+            os.mkdir(archive_dir)
+        except OSError:
+            pass
+        shutil.copyfile(
+            home_data_file,
+            os.path.join(archive_dir, "{}-{}".format(
+                datetime.now().strftime("%Y-%m-%d-%H-%M"), "home-data.csv")
+            )
+        )
+    with open(home_data_file, "w") as file_:
+        writer = csv.writer(file_)
+        writer.writerow(data[0].keys())
+        for entry in data:
+            writer.writerow(entry.values())
+
+
 def main():
     properties = search_properties()
     zpids = map(lambda home: home[0], properties)
     data_set = get_zpid_info(zpids)
+    write_data_to_file(data_set)
 
 
 if __name__ == "__main__":

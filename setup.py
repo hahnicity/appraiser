@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
-__version__ = "0.1"
+__version__ = "0.2"
 
 
 setup(
@@ -12,6 +12,12 @@ setup(
     package_data={"*": ["*.html"]},
     install_requires=[
         "flowzillow",
+        "redis",
         "scrapezillow",
     ],
+    entry_points={
+        "console_scripts": [
+            "appraiser=appraiser.main:main"
+        ]
+    }
 )

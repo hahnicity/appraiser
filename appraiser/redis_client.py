@@ -14,7 +14,8 @@ def write_data_to_redis(data):
     client = _get_client()
     for entry in data:
         zpid = entry.pop("zpid")
-        client.set(zpid, dumps(entry))
+        if not client.exists(zpid):
+            client.set(zpid, dumps(entry))
 
 
 def _get_client():

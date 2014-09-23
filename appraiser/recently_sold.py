@@ -16,7 +16,7 @@ def get_zpid_info(zpids):
     want to explicitly fail if we receive an error.
     """
     pool = Pool(200)
-    jobs = [pool.apply_async(get_data_set, args=(zpid,)) for zpid in zpids[1:40]]
+    jobs = [pool.apply_async(get_data_set, args=(zpid,)) for zpid in zpids]
     pool.close()
     data = []
     for job in jobs:
@@ -34,20 +34,20 @@ def get_data_set(zpid):
 
 
 def parse_results(results):
+    def convert_str_to_float(str_):
+        return float(str_.strip().replace(",", ""))
+
     try:
+        if results["home_type"] != "Single Family":
+            return None
         return {
-            "use_code": {
-                "Single Family": 0,
-                "Condo":1,
-                "Townhouse": 2,
-                "Apartment": 3
-            }[results["home_type"]],
             "year_built": int(results["year"]),
-            "lot_sq_ft": float(results["lot"].replace("sqft", "").strip().replace(",", "")),
-            "finished_sq_ft": float(results["sqft"].replace(",", "")),
+            "lot_sq_ft": convert_str_to_float(results["lot"].replace("sqft", "")),
+            "finished_sq_ft": convert_str_to_float(results["sqft"]),
             "bathrooms": float(results["bathrooms"]),
             "bedrooms": float(results["bedrooms"]),
             "total_rooms": float(results["room_count"]),
+            "sale_price": convert_str_to_float(results["sold"])
         }
     except KeyError:
         return None
@@ -55,14 +55,16 @@ def parse_results(results):
 
 def search_properties():
     searcher = SearchClient()
-    # For now harcode these latlong vals to Oakland CA
+    # For now harcode these latlong vals
     return searcher.search(
-        (37683005, -122542534),
-        (37901136, -121914940),
+        (37869179, -122293861),
+        (37882729, -122264678),
         sort="price",
         lt="000000",
         status="001000",  # Corresponds to all homes that were recently sold
-        zoom="19"
+        zoom="12",
+        rect="-122344866,37837310,-122228136,37891518",
+        clipPolygon="37.855406,-122.266417|37.852289,-122.287016|37.854187,-122.287016|37.865029,-122.292166|37.876412,-122.294054|37.875328,-122.294054|37.875328,-122.291651|37.876954,-122.284956|37.877089,-122.277575|37.878309,-122.27191|37.878309,-122.268991|37.855406,-122.266073|37.855406,-122.266417|37.855406,-122.266417"
     )["map"]["properties"]
 
 
@@ -83,9 +85,15 @@ def write_data_to_file(data):
         )
     with open(home_data_file, "w") as file_:
         writer = csv.writer(file_)
-        writer.writerow(data[0].keys())
+        header = data[0].keys()
+        header[0] = "#{}".format(header[0])
+        sale_price_index = header.index("sale_price")
+        header.insert(len(header), header.pop(sale_price_index))
+        writer.writerow(header)
         for entry in data:
-            writer.writerow(entry.values())
+            values = entry.values()
+            values.insert(len(values), values.pop(sale_price_index))
+            writer.writerow(values)
 
 
 def main():

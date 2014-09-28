@@ -2,7 +2,9 @@ from argparse import ArgumentParser
 
 from appraiser.file_writer import write_data_to_file
 from appraiser.recently_sold import gather_recently_sold_data
-from appraiser.redis_client import write_data_to_redis
+from appraiser.redis_client import (
+    get_client, perform_redis_write, write_data_to_redis_if_not_exists
+)
 
 
 def main():
@@ -15,7 +17,8 @@ def main():
     if args.store_to_file:
         write_data_to_file(data)
     else:
-        write_data_to_redis(data)
+        redis_client = get_client()
+        perform_redis_write(redis_client, data, write_data_to_redis_if_not_exists)
 
 
 if __name__ == "__main__":

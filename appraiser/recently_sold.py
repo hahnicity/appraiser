@@ -45,6 +45,8 @@ def parse_results(results, zpid):
             "total_rooms": float(results["room_count"]),
             "sale_price": convert_str_to_float(results["sold"]),
             "zpid": zpid,
+            "state": results["state"],
+            "city": results["city"],
         }
     except KeyError:
         return None

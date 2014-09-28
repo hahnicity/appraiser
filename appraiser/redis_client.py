@@ -16,17 +16,18 @@ def get_all_redis_data(client):
 def perform_redis_write(client, data, func):
     for entry in data:
         zpid = entry.pop("zpid")
-        func(client, entry, zpid)
+        key = "{}_zpid".format(zpid)
+        func(client, entry, key)
 
 
-def update_redis_entries(client, data, entry, zpid):
-    if client.exists(zpid):
-        client.set("{}_zpid".format(zpid), dumps(entry))
+def update_redis_entries(client, entry, key):
+    if client.exists(key):
+        client.set(key, dumps(entry))
 
 
-def write_data_to_redis_if_not_exists(client, data, entry, zpid):
-    if not client.exists(zpid):
-        client.set("{}_zpid".format(zpid), dumps(entry))
+def write_data_to_redis_if_not_exists(client, entry, key):
+    if not client.exists(key):
+        client.set(key, dumps(entry))
 
 
 def get_client():

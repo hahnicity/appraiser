@@ -10,13 +10,15 @@ from appraiser.redis_client import (
 def main():
     # Mungy hardcoding for now
     redis_client = get_client()
-    redis_data = get_all_redis_data(redis_client)[0:10]
-    # XXX Put the limiter in before you begin full scale runs!!!
-    # XXX Put the limiter in before you begin full scale runs!!!
-    # XXX Put the limiter in before you begin full scale runs!!!
-    zillow_client = ZillowClient("X1-ZWz1bvdg36cqvf_85kuc")
-    # XXX Put the limiter in before you begin full scale runs!!!
-    # XXX Put the limiter in before you begin full scale runs!!!
-    # XXX Put the limiter in before you begin full scale runs!!!
+    redis_data = get_all_redis_data(redis_client)
+    zillow_client = RedisLimiter(
+        ZillowClient("X1-ZWz1bvdg36cqvf_85kuc"),
+        60,
+        1000,
+        60* 60 * 24,
+        "localhost",
+        6379,
+        0
+    )
     updated = update_all_properties(zillow_client, redis_data)
-    perform_redis_write(updated, update_redis_entries)
+    perform_redis_write(redis_client, updated, update_redis_entries)

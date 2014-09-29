@@ -20,6 +20,7 @@ setup(
         "console_scripts": [
             "appraiser=appraiser.main:main",
             "update_demographics=appraiser.update_demographics:main",
+            "write_to_file=appraiser.file_writer:main",
         ]
     }
 )

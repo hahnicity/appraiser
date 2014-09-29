@@ -3,10 +3,10 @@ from datetime import datetime
 import os
 import shutil
 
+from appraiser.redis_client import get_all_redis_data, get_client
 
-def write_data_to_file(data):
-    appraiser_dir = os.path.dirname(__file__)
-    home_data_file = os.path.join(appraiser_dir, "home-data.csv")
+
+def archive_previous_files(appraiser_dir, home_data_file):
     if os.path.exists(home_data_file):
         archive_dir = os.path.join(appraiser_dir, "archive_dir")
         try:
@@ -19,17 +19,41 @@ def write_data_to_file(data):
                 datetime.now().strftime("%Y-%m-%d-%H-%M"), "home-data.csv")
             )
         )
+
+
+def filter_entries_before_write(data):
+    """
+    Filter out any unnecessary data from our data entries like zpid, city, state, etc.
+    """
+    tmp_data = list(data)
+    new_data = []
+    for entry in tmp_data:
+        del entry["zpid"]
+        del entry["state"]
+        del entry["city"]
+        new_data.append(entry)
+    return new_data
+
+
+def write_data_to_file(data):
+    appraiser_dir = os.path.dirname(__file__)
+    home_data_file = os.path.join(appraiser_dir, "home-data.csv")
+    archive_previous_files(appraiser_dir, home_data_file)
     with open(home_data_file, "w") as file_:
         writer = csv.writer(file_)
         header = data[0].keys()
         header[0] = "#{}".format(header[0])
         sale_price_index = header.index("sale_price")
         header.insert(len(header), header.pop(sale_price_index))
-        zpid_index = header.index("zpid") if "zpid" in header else None
         writer.writerow(header)
         for entry in data:
             values = entry.values()
             values.insert(len(values), values.pop(sale_price_index))
-            if zpid_index:
-                del values[zpid_index]
             writer.writerow(values)
+
+
+def main():
+    redis_client = get_client()
+    data = get_all_redis_data(redis_client)
+    data = filter_entries_before_write(data)
+    write_data_to_file(data)

@@ -42,7 +42,7 @@ function main()
     theta = zeros(size(x)(2), 1);
     x_normed = normalize_x(x);
     x = [ones(m, 1), x];
-    [theta, j_history] = perform_gradient_descent(x_normed, y, theta, .01, 20, 1000)
+    [theta, j_history] = perform_gradient_descent(x_normed, y, theta, .1, 20, 1000)
     theta
 end
 

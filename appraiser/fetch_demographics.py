@@ -1,6 +1,9 @@
+from pickle import dumps, loads
 import re
 from warnings import warn
 from xml.etree import ElementTree
+
+from appraiser.constants import CITY_KEY
 
 
 def _get_item_name(item):
@@ -15,7 +18,7 @@ def _get_item_name(item):
     return name
 
 
-def _get_data_point_value(data_point):
+def _get_data_point_value(data_point, point_name):
     for element in data_point:
         if element.tag == "values":
             for sub_elem in element:
@@ -24,7 +27,20 @@ def _get_data_point_value(data_point):
                          "\n\nIn element with children{}".format(sub_elem.tag,
                                                                  element.get_children()))
             else:
-                return element.find("city").find("value").text
+                city = element.find("city")
+                if city is not None:
+                    warn("We could not find the city specific value for {} if this is a major "
+                         "problem you may want to consider contacting zillow. We will return the "
+                         "national value for this".format(point_name))
+                else:
+                    return city.find("value").text
+                nation = element.find("nation")
+                if nation is not None:
+                    warn("We could not find the national value for {}. If this is an issue it "
+                         "might be best to contact Zillow. We will return None".format(point_name))
+                    return None
+                else:
+                    return nation.find("value").text
         elif element.tag == "value":
             return element.text
 
@@ -41,7 +57,7 @@ def _parse_get_demographics(xml_tree):
                 results[page_name][table_name] = {}
                 for data_point in table.find("data"):
                     point_name = _get_item_name(data_point)
-                    point_val = _get_data_point_value(data_point)
+                    point_val = _get_data_point_value(data_point, point_name)
                     results[page_name][table_name][point_name] = point_val
     except (KeyError, IndexError):
         return None
@@ -49,19 +65,20 @@ def _parse_get_demographics(xml_tree):
         return results
 
 
-def update_all_properties(zillow_client, data):
+def update_all_properties(zillow_client, redis_client, data):
     all_properties = []
-    cached_cities = []
+    cities_tmp = list(redis_client.smembers(CITY_KEY))
+    cached_cities = [loads(city) for city in cities_tmp]
     for entry in data:
         # This loops serves as persistent storage for cities during execution time.
         # Next step will be to get this data into redis
-        updated, cached_cities = update_property(zillow_client, entry, cached_cities)
+        updated, cached_cities = update_property(zillow_client, redis_client, entry, cached_cities)
         all_properties.append(updated)
     filtered = filter(lambda entry: entry, all_properties)
     return filtered
 
 
-def update_property(zillow_client, entry, cached_cities):
+def update_property(zillow_client, redis_client, entry, cached_cities):
     def update_with_additional_data(data_entry, city_entry):
         try:
             affordability_stats = city_entry["affordability"]["affordability_data"]
@@ -81,14 +98,24 @@ def update_property(zillow_client, entry, cached_cities):
             return data_entry
 
     for city in cached_cities:
-        if city[0] == entry["state"] and city[1] == entry["city"]:
-            cached_data = city[2]
-            updated = update_with_additional_data(entry, city[2])
+        if city["state"] == entry["state"] and city["city"] == entry["city"]:
+            updated = update_with_additional_data(entry, city)
             return updated, cached_cities
     else:
-        demographics = zillow_client.get_demographics(state=entry["state"], city=entry["city"])
-        xml_tree = ElementTree.fromstring(demographics)
-        results = _parse_get_demographics(xml_tree)
-        updated = update_with_additional_data(entry, results)
-        cached_cities.append((entry["state"], entry["city"], results))
-        return updated, cached_cities
+        try:
+            demographics = zillow_client.get_demographics(state=entry["state"], city=entry["city"])
+            xml_tree = ElementTree.fromstring(demographics)
+            results = _parse_get_demographics(xml_tree)
+            results["state"] = entry["state"]
+            results["city"] = entry["city"]
+        except Exception as err:
+            warn("We cannot parse data for {} because our xml may be malformed. If there is "
+                 "a problem with this single API call just re-run this program and all missing "
+                 "data will be populated. If this problem persists our xml parsing may be off "
+                 "or there could be a server issue".format(entry["city"]))
+            return None, cached_cities
+        else:
+            updated = update_with_additional_data(entry, results)
+            cached_cities.append(results)
+            redis_client.sadd(CITY_KEY, dumps(results))
+            return updated, cached_cities

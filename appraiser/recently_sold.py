@@ -52,22 +52,14 @@ def parse_results(results, zpid):
         return None
 
 
-def search_properties():
+def search_properties(latlong1, latlong2, **kwargs):
     searcher = SearchClient()
-    # For now harcode these latlong vals
-    return searcher.search(
-        (37869179, -122293861),
-        (37882729, -122264678),
-        sort="price",
-        lt="000000",
-        status="001000",  # Corresponds to all homes that were recently sold
-        zoom="12",
-        rect="-122344866,37837310,-122228136,37891518",
-        clipPolygon="37.855406,-122.266417|37.852289,-122.287016|37.854187,-122.287016|37.865029,-122.292166|37.876412,-122.294054|37.875328,-122.294054|37.875328,-122.291651|37.876954,-122.284956|37.877089,-122.277575|37.878309,-122.27191|37.878309,-122.268991|37.855406,-122.266073|37.855406,-122.266417|37.855406,-122.266417"
-    )["map"]["properties"]
+    args = (latlong1, latlong2)
+    kwargs.update({"sort": "price", "lt": "000000", "status": "001000", "zoom": "12"})
+    return searcher.search(*args, **kwargs)["map"]["properties"]
 
 
-def gather_recently_sold_data():
-    properties = search_properties()
+def gather_recently_sold_data(latlong1, latlong2, **kwargs):
+    properties = search_properties(latlong1, latlong2, **kwargs)
     zpids = map(lambda home: home[0], properties)
     return get_zpid_info(zpids)

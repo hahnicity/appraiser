@@ -14,11 +14,11 @@ def main():
     zillow_client = RedisLimiter(
         ZillowClient("X1-ZWz1bvdg36cqvf_85kuc"),
         60,
-        1000,
-        60* 60 * 24,
+        950,
+        60 * 60 * 24,
         "localhost",
         6379,
         0
     )
-    updated = update_all_properties(zillow_client, redis_data)
+    updated = update_all_properties(zillow_client, redis_client, redis_data)
     perform_redis_write(redis_client, updated, update_redis_entries)

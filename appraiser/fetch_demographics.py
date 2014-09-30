@@ -28,14 +28,14 @@ def _get_data_point_value(data_point, point_name):
                                                                  element.get_children()))
             else:
                 city = element.find("city")
-                if city is not None:
+                if city is None:
                     warn("We could not find the city specific value for {} if this is a major "
                          "problem you may want to consider contacting zillow. We will return the "
                          "national value for this".format(point_name))
                 else:
                     return city.find("value").text
                 nation = element.find("nation")
-                if nation is not None:
+                if nation is None:
                     warn("We could not find the national value for {}. If this is an issue it "
                          "might be best to contact Zillow. We will return None".format(point_name))
                     return None

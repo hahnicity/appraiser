@@ -35,6 +35,13 @@ def filter_entries_before_write(data):
     return new_data
 
 
+def strict_data_orderer(entry, ordering):
+    """
+    This function ensures all features will be in the correct order when we write to file.
+    """
+    return [entry[key] for key in ordering]
+
+
 def write_data_to_file(data):
     appraiser_dir = os.path.dirname(__file__)
     home_data_file = os.path.join(appraiser_dir, "home-data.csv")
@@ -47,7 +54,7 @@ def write_data_to_file(data):
         header.insert(len(header), header.pop(sale_price_index))
         writer.writerow(header)
         for entry in data:
-            values = entry.values()
+            values = strict_data_orderer(entry, data[0].keys())
             values.insert(len(values), values.pop(sale_price_index))
             writer.writerow(values)
 

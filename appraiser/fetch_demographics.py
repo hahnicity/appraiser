@@ -81,16 +81,11 @@ def update_all_properties(zillow_client, redis_client, data):
 def update_property(zillow_client, redis_client, entry, cached_cities):
     def update_with_additional_data(data_entry, city_entry):
         try:
-            affordability_stats = city_entry["affordability"]["affordability_data"]
-            desired_stats = (
-                "median_list_price",
-                "median_sale_price",
-                "median_single_family_home_value",
-                "property_tax",
-                "turnover_sold_within_last_yr"
-            )
-            for stat in desired_stats:
-                data_entry[stat] = affordability_stats[stat]
+            data_entry["affordability"] = city_entry["affordability"]["affordability_data"]
+            data_entry["home_size"] = city_entry["homes_&_real_estate"]["census_summary_home_size"]
+            data_entry["real_estate"] = city_entry["homes_&_real_estate"]["homes_&_real_estate_data"]
+            data_entry["people"] = city_entry["people"]["people_data"]
+            data_entry["relationship_status"] = city_entry["people"]["census_summary_relationship_status"]
         except KeyError as err:
             warn("The stat {} was unable to be found".format(err.message))
             return None
@@ -108,7 +103,7 @@ def update_property(zillow_client, redis_client, entry, cached_cities):
             results = _parse_get_demographics(xml_tree)
             results["state"] = entry["state"]
             results["city"] = entry["city"]
-        except Exception as err:
+        except Exception:
             warn("We cannot parse data for {} because our xml may be malformed. If there is "
                  "a problem with this single API call just re-run this program and all missing "
                  "data will be populated. If this problem persists our xml parsing may be off "

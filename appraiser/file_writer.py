@@ -1,3 +1,7 @@
+"""
+The final step of our data aggregation process. Take all the data from redis and write it
+to a file so we can trivially (for now) load it from octave.
+"""
 import csv
 from datetime import datetime
 import os
@@ -25,13 +29,50 @@ def filter_entries_before_write(data):
     """
     Filter out any unnecessary data from our data entries like zpid, city, state, etc.
     """
+    def convert_str_to_float(str_):
+        return float(str_.strip().replace(",", ""))
+
+    def get_lot_size(size):
+        size = size.replace("sqft", "")
+        if "acres" in size:
+            return float(size.split(" ")[0]) * 43560
+        else:
+            return convert_str_to_float(size)
+
     tmp_data = list(data)
     new_data = []
     for entry in tmp_data:
-        del entry["zpid"]
-        del entry["state"]
-        del entry["city"]
-        new_data.append(entry)
+        try:
+            if entry["home_type"] != "Single Family":
+                continue
+            new_entry = {
+                "year_built": int(entry["year"]),
+                "lot_sq_ft": get_lot_size(entry["lot"]),
+                "finished_sq_ft": convert_str_to_float(entry["sqft"]),
+                "bathrooms": float(entry["bathrooms"]),
+                "bedrooms": float(entry["bedrooms"]),
+                "total_rooms": float(entry["room_count"]),
+                "sale_price": convert_str_to_float(entry["sold"]),
+                "married_male": convert_str_to_float(entry["relationship_status"]["married_male"]),
+                "married_female": convert_str_to_float(entry["relationship_status"]["married_female"]),
+                "single_male": convert_str_to_float(entry["relationship_status"]["single_male"]),
+                "single_female": convert_str_to_float(entry["relationship_status"]["single_female"]),
+                "median_income": convert_str_to_float(entry["people"]["median_household_income"]),
+                "median_age": convert_str_to_float(entry["people"]["median_age"]),
+                "median_sale_price": convert_str_to_float(entry["affordability"]["median_sale_price"]),
+                "median_single_family_home_value": convert_str_to_float(entry["affordability"]["median_single_family_home_value"]),
+                "turnover": convert_str_to_float(entry["affordability"]["turnover_sold_within_last_yr"]),
+                "property_tax": convert_str_to_float(entry["affordability"]["property_tax"]),
+                "single_family_homes": convert_str_to_float(entry["real_estate"]["single_family_homes"]),
+                "median_home_size": convert_str_to_float(entry["real_estate"]["median_home_size_sq_ft"]),
+            }
+            new_entry["income_to_median_sale_price"] = new_entry["median_income"] / new_entry["median_sale_price"]
+            new_entry["size_to_median_size"] = new_entry["finished_sq_ft"] / new_entry["median_home_size"]
+            # Start comparing bedrooms to median bedroom values
+        except KeyError:
+            continue
+        else:
+            new_data.append(new_entry)
     return new_data
 
 

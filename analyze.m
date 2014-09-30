@@ -39,10 +39,11 @@ function main()
     x = data(:, 1:size(data)(2) - 1);
     y = data(:, size(data)(2));
     m = length(y);
-    theta = zeros(size(x)(2), 1);
     x_normed = normalize_x(x);
-    x = [ones(m, 1), x];
-    [theta, j_history] = perform_gradient_descent(x_normed, y, theta, .1, 20, 1000)
+    x = [ones(m, 1), x_normed];
+    theta = zeros(size(x)(2), 1);
+    [theta, j_history] = perform_gradient_descent(x, y, theta, .1, 0, 500);
+    j_history
     theta
 end
 

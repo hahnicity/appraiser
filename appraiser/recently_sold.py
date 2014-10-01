@@ -19,7 +19,7 @@ def get_zpid_info(zpids):
     for job in jobs:
         try:
             data.append(job.get())
-        except (ConnectionError, Timeout):
+        except (AttributeError, ConnectionError, Timeout): # For now pass on attribute errors until we can figure out what the exact cause is
             continue
     pool.join()
     return filter(lambda data: data is not None, data)

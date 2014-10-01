@@ -42,9 +42,14 @@ function main()
     x_normed = normalize_x(x);
     x = [ones(m, 1), x_normed];
     theta = zeros(size(x)(2), 1);
-    [theta, j_history] = perform_gradient_descent(x, y, theta, .1, 0, 500);
-    j_history
-    theta
+    [theta, j_history] = perform_gradient_descent(x, y, theta, .01, 0, 10000);
+    predictions = x * theta;
+    idx = [1:m];
+    plot(idx, y, "color", "red")
+    hold on;
+    plot(idx, predictions, "color", "blue");
+    pause;
+    j_history(length(j_history))
 end
 
 

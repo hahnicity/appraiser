@@ -15,9 +15,27 @@ I learned
  * Fun ways to get around API rate limiting
  * Network sleuthing to find undocumented APIs
 
-All in all it was a fun project. Here are my results of a 141 member training set.
+All in all it was a fun project. Here are my results of a 140-ish member training set.
 
 ![Results](results.png)
+
+Reproduction
+------------
+If you so choose to reproduce my results I created some an easy shell script that will
+do all of the work for you
+
+    ./gather_results.sh
+
+Then you can just analyze the results
+
+    octave analyze.m
+
+If you are more ambitious and want to actually use the tools then you can use the `apraiser` CLI
+
+    appraiser --rect <zillow-fied geocoords for your search grid>  # Get all property data
+    update_demographics  # Update all of the demographic information for the city a house is in
+    write_to_file  # Write the results to file.
+    octave analyze.m
 
 Why Finished?
 -------------

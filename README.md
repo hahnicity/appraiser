@@ -49,7 +49,9 @@ I will pick this up later. This work surely isn't going anywhere.
 
 Take Aways
 ----------
-
+ * It is a ton of work to actually create a working, non-shoe string data aggregator. It only makes
+   me respect the people who go out and get the data all the more now realizing what they go 
+   through
  * It's really easy to craft an architecture that can be limiting to your overall project
    Gather all your data, store it somewhere (in unadulterated form), and then filter/modify it.
    Do not store your data in filtered form. You are just asking to refactor your work.
